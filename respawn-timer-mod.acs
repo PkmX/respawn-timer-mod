@@ -1,0 +1,52 @@
+#library "respawn-timer-mod"
+#include "zcommon.acs"
+
+#define MAX_PLAYERS 32
+#define PLAYER_TID 600
+#define HUD_MSG_ID 999
+
+int last_dead_tic[MAX_PLAYERS];
+
+function int respawn_tics_remaining(void) {
+    return last_dead_tic[PlayerNumber()] + 35 * GetCvar("respawn_time") - Timer();
+}
+
+function bool can_respawn(void) {
+    return respawn_tics_remaining() <= 0;
+}
+
+script "rt-enter" ENTER {
+    last_dead_tic[PlayerNumber()] = -1;
+}
+
+script "rt-respawn" RESPAWN {
+    if (!can_respawn()) {
+        DamageThing(0);
+    } else {
+        last_dead_tic[PlayerNumber()] = -1;
+        HudMessageBold(s: ""; HUDMSG_PLAIN, HUD_MSG_ID, CR_WHITE, 1.5, 0.7, 1.0 / 35 + 1);
+    }
+}
+
+script "rt-death" DEATH {
+    if (last_dead_tic[PlayerNumber()] == -1) {
+        last_dead_tic[PlayerNumber()] = Timer();
+    }
+
+    while (!can_respawn()) {
+        HudMessageBold(s: "You must wait for \cf", d: respawn_tics_remaining() / 35, s: "\c- second(s) before respawning"; HUDMSG_PLAIN, HUD_MSG_ID, CR_WHITE, 1.5, 0.7, 0);
+        delay(35);
+    }
+
+    HudMessageBold(s: "\cdYou may now respawn!\c-"; HUDMSG_PLAIN, HUD_MSG_ID, CR_WHITE, 1.5, 0.7, 0);
+}
+
+script "rt-debug" (void) net clientside {
+    log(s: "respawn_time = ", d: GetCvar("respawn_time"));
+    log(s: "timer = ", d: Timer());
+    for (int i = 0; i < MAX_PLAYERS; ++i) {
+        if (PlayerInGame(i)) {
+            log(s: "Player ", d: i, s: ": last_dead_tic = ", d: last_dead_tic[i], s: ", tics_remaining = ", d: last_dead_tic[i] + 35 * GetCvar("respawn_time") - Timer());
+        }
+    }
+}
