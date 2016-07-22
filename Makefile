@@ -1,4 +1,4 @@
-VERSION := 1
+VERSION := 2
 PK3_NAME := respawn-timer-mod-v$(VERSION).pk3
 
 ACCFLAGS :=
